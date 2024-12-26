@@ -22,18 +22,13 @@ def cryptography(settings: Settings):
 def database(settings: Settings):
     database = Database(settings)
     database.setup()
-    metadata.create_all(database.connection)
-    yield database
-    metadata.drop_all(database.connection)
-    database.connection.close()
-    database.teardown()
-
-@fixture(scope='function')
-def transaction(database: Database):
     transaction = database.connection.begin()
-    yield database
-    transaction.rollback()
-    database.connection.close()
+    try:
+        yield database
+    finally:
+        transaction.rollback()
+        database.connection.close()
+        database.teardown()
 
 @fixture(scope='function')
 def credentials(database: Database, cryptography: Cryptography):

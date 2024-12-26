@@ -1,11 +1,9 @@
 from pytest import fixture
-from sqlalchemy import create_engine, Engine
-from sqlalchemy import Connection
-from sqlalchemy.orm import sessionmaker , Session
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from credentials.settings import Settings
+from credentials.adapters import Database
 from credentials.adapters.schemas import metadata
 from credentials.adapters.cryptography import Cryptography
 from credentials.adapters.credentials import Credentials
@@ -20,37 +18,28 @@ def settings() -> Settings:
 def cryptography(settings: Settings):
     return Cryptography(settings)
 
-@fixture(scope='session')
-def engine(settings: Settings):
-    engine = create_engine(settings.database.uri)
-    yield engine
-    engine.dispose()
+@fixture(scope='function')
+def database(settings: Settings):
+    database = Database(settings)
+    database.setup()
+    metadata.create_all(database.connection)
+    yield database
+    metadata.drop_all(database.connection)
+    database.connection.close()
+    database.teardown()
 
 @fixture(scope='function')
-def connection(engine: Engine):
-    with engine.connect() as connection:
-        transaction = connection.begin()
-        metadata.create_all(engine)
-        try:
-            yield connection
-        finally:
-            transaction.rollback()
-            metadata.drop_all(engine)
-            connection.close()
+def transaction(database: Database):
+    transaction = database.connection.begin()
+    yield database
+    transaction.rollback()
+    database.connection.close()
 
 @fixture(scope='function')
-def session_maker(connection: Connection):
-    yield sessionmaker(bind=connection)
-
-@fixture(scope='function')
-def session(session_maker: sessionmaker[Session]):
-    with session_maker.begin() as session:
-        yield session
+def credentials(database: Database, cryptography: Cryptography):
+    with database.sessionmaker() as session:
+        yield Credentials(session, cryptography)   
         session.commit()
-
-@fixture(scope='function')
-def credentials(session: Session, cryptography: Cryptography):
-    return Credentials(session, cryptography)
 
 def mock_security(credential: Credential ) -> Credential:
     return credential

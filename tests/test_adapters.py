@@ -1,20 +1,21 @@
-from credentials.schemas import SecretBytes
-from credentials.schemas import Credential
-from credentials.ports import Cryptography
-from credentials.ports import Credentials
+from uuid import uuid4
+from server.ports.users import Users
+from server.schemas import SecretStr, SecretBytes
 
-def test_cryptography(cryptography: Cryptography):
-    password = SecretBytes('test')
-    wrong = SecretBytes('wrong')
-    hash = cryptography.hash(password)
-    assert cryptography.verify(password, hash)
-    assert not cryptography.verify(wrong, hash)
+def test_users(users: Users):
+    id = uuid4()
+    user = users.create(id=id)
+    assert user.id == id
+    user = users.get(id)
+    assert user.id == id
+    users.delete(id)
+    user = users.get(id)
+    assert not user
 
-def test_credentials(credentials: Credentials):
-    credentials.add(Credential(username='test', password='test'))
-    assert credentials.exists(Credential(username='test', password='test'))
-    assert not credentials.exists(Credential(username='none', password='test'))
-
-    assert credentials.verify(Credential(username='test', password='test'))
-    assert not credentials.verify(Credential(username='test', password='wrong'))
-    assert not credentials.verify(Credential(username='none', password='test'))
+def test_credentials(users: Users):
+    id = uuid4()
+    user = users.create(id=id)
+    user.credentials.add(SecretStr('test'), SecretBytes(b'test'))
+    user = users.read(by='credentials', username=SecretStr('test'))
+    assert user.id == id
+    assert user.credentials.verify(SecretStr('test'), SecretBytes(b'test'))

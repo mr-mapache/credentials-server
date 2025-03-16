@@ -31,6 +31,9 @@ jobs:
       DATABASE_USER: postgres
       DATABASE_PASSWORD: postgres
       DATABASE_NAME: test_db
+      API_KEY: testemkcO7q149GhPIRgLV1KCpP3G8ixR+htKwqTAvTeR6c=
+      CRYPTOGRAPHY_KEY: testemkcO7q149GhPIRgLV1KCpP3G8ixR+htKwqTAvTeR6c=
+      SESSIONS_SECRET_KEY: testemkcO7q149GhPIRgLV1KCpP3G8ixR+htKwqTAvTeR6c=
 
     steps:
       - name: Checkout code

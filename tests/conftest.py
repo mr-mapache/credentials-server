@@ -46,7 +46,5 @@ def tokens(settings):
 
 @fixture(scope='function')
 def client(users, authority, tokens):
-    api = FastAPI() 
-    api.include_router(auth.router)
-    api.dependency_overrides[auth.service] = lambda: Auth(users, authority, tokens)
-    return TestClient(api)
+    auth.api.dependency_overrides[auth.service] = lambda: Auth(users, authority, tokens)
+    return TestClient(auth.api)

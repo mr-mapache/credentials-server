@@ -16,6 +16,7 @@ python-jose = {extras = ["cryptography"], version = "^3.4.0"}
 fastapi = {extras = ["standard"], version = "^0.115.11"}
 bcrypt = "^4.3.0"
 itsdangerous = "^2.2.0"
+httpx = "^0.28.1"
 
 
 [tool.poetry.group.tests.dependencies]

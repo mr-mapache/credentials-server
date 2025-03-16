@@ -1,13 +1,11 @@
 from typing import Annotated
-
 from fastapi import FastAPI 
-from fastapi import Depends
-from fastapi import Security
-from fastapi import HTTPException, status
-from fastapi import Header
+from fastapi import Depends   
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from server.settings import Settings
 from server.connections import Database, Connections
-from server.middleware import Middleware, CORSMiddleware, SessionMiddleware 
+from server.middleware import Middleware, SessionMiddleware, CORSMiddleware
 from server.adapters.users import Users
 from server.adapters.claims import Authority
 from server.adapters.tokens import Tokens
@@ -24,6 +22,9 @@ middleware = [
 authority = Authority()
 tokens = Tokens(settings)
 
+templates = Jinja2Templates(directory="server/templates")
+static = StaticFiles(directory="server/static")
+
 def lifespan(api):
     database.setup() 
     yield 
@@ -33,13 +34,10 @@ def repository():
     with Connections(database) as connections:
         return Users(connections, settings)
 
-def service(users: Annotated[Users, Depends(repository)]):
+def auth_service(users: Annotated[Users, Depends(repository)]):
     return Auth(users, authority, tokens)
- 
-def security(x_key: Annotated[str, Header(...)]):
-    if not x_key == settings.api.key.get_secret_value():
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid API key")
 
-api = FastAPI(root_path='/api', lifespan=lifespan, middleware=middleware) 
-api.include_router(auth.router, dependencies=[Security(security)])
-api.dependency_overrides[auth.service] = service 
+auth.api.dependency_overrides[auth.service] = auth_service
+
+api = FastAPI(lifespan=lifespan, middleware=middleware) 
+api.mount('/auth', auth.api)

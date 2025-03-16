@@ -25,7 +25,6 @@ class Cryptography:
         return checkpw(reveal(secret), hash)
 
     def hash(self, secret: Secret) -> bytes:
-        print(reveal(secret))
         return hashpw(reveal(secret), gensalt())
     
 
